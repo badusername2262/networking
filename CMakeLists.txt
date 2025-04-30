@@ -7,4 +7,4 @@ find_package(OpenSSL REQUIRED)
 
 add_executable(networking_cli networking.cpp)
 
-target_link_libraries(networking_cli OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(networking_cli OpenSSL::SSL OpenSSL::Crypto Ws2_32)
