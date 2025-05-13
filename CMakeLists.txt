@@ -3,8 +3,13 @@ project(networking_cli)
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(OpenSSL REQUIRED)
+set(SRC 
+        networking.cpp)
 
-add_executable(networking_cli networking.cpp)
+set(HEADERS
+        networking.h
+        debuginfo.h)
 
-target_link_libraries(networking_cli OpenSSL::SSL OpenSSL::Crypto Ws2_32)
+add_executable(networking_cli ${SRC} ${HEADERS})
+
+target_link_libraries(networking_cli Ws2_32)

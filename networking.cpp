@@ -1,4 +1,5 @@
 #include "networking.h"
+#include "debuginfo.h"
 
 #define DEFAULT_PORT "27015"
 #define MESSAGE_SIZE 1024
@@ -9,14 +10,6 @@ struct addrinfo *result = NULL, *ptr = NULL, hints;
 
 void run_server()
 {
-
-    SSL_library_init();
-    SSL_load_error_strings();
-    OpenSSL_add_ssl_algorithms();
-
-    SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
-    SSL_CTX_use_certificate_file(ctx, "cert.pem", SSL_FILETYPE_PEM);
-    SSL_CTX_use_PrivateKey_file(ctx, "key.pem", SSL_FILETYPE_PEM);
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
@@ -73,22 +66,18 @@ void run_server()
     } else {
         std::cerr << "Failed to get client IP address.\n";
     }
-    
-    SSL* ssl = SSL_new(ctx);
-    SSL_set_fd(ssl, ClientSocket);
-    if (SSL_accept(ssl) <= 0) { ERR_print_errors_fp(stderr); }    
 
     char recvbuf[MESSAGE_SIZE];
     int iSendResult, recvbuflen = MESSAGE_SIZE;
     
     std::string response;
     std::map<std::string, std::string> users = {
-        {"player1", sha256("password123")},
-        {"player2", sha256("hunter2")}
+        {"player1", "password123"},
+        {"player2", "hunter2"}
     };
 
     while (true) {
-        iResult = SSL_read(ssl, recvbuf, recvbuflen);
+        iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
         if (iResult <= 0) break;
 
         std::string credentials(recvbuf, iResult);
@@ -108,34 +97,18 @@ void run_server()
                 response = "Unknown username: " + username + "\n";
             }
         }
-        SSL_write(ssl, response.c_str(), (int)response.size());
+        send(ClientSocket, response.c_str(), (int)response.size(), 0);
     
     }
 
-    SSL_shutdown(ssl);
-    SSL_free(ssl);
-    SSL_CTX_free(ctx);
+    iResult = shutdown(ClientSocket, SD_SEND);
     closesocket(ClientSocket);
 
-    printf("DONE!");
-
+    printf("DONE!\n");
 }
 
 void run_client()
 {
-
-    SSL_library_init();
-    SSL_load_error_strings();
-    OpenSSL_add_ssl_algorithms();
-
-    SSL_CTX* ctx = SSL_CTX_new(TLS_client_method());
-
-    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, verify_callback); // skip verification for testing
-    
-    if(!SSL_CTX_load_verify_locations(ctx, "cert.pem", NULL)) {
-        ERR_print_errors_fp(stderr);
-        return;
-    }
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -178,26 +151,6 @@ void run_client()
         printf("Unable to connect to server!\n");
         return;
     }
-
-    SSL* ssl = SSL_new(ctx);
-    SSL_set_fd(ssl, ConnectSocket);
-
-    if (SSL_connect(ssl) <= 0) { 
-        long result = SSL_get_verify_result(ssl);
-
-        if (result != X509_V_OK) {
-            std::cout << "Certificate verification error: " << X509_verify_cert_error_string(result) << std::endl;
-        } else {
-            std::cout << "SSL_connect failed for another reason." << std::endl;
-        }
-        SSL_shutdown(ssl);
-        SSL_free(ssl);
-        SSL_CTX_free(ctx);
-        closesocket(ConnectSocket);
-        return;
-    } else {
-        std::cout << "Certificate verified successfully.\n";
-    }
     
     int recvbuflen = MESSAGE_SIZE;
     char recvbuf[MESSAGE_SIZE];
@@ -208,43 +161,23 @@ void run_client()
     std::cout << "Password: ";
     std::cin >> password;
 
-    std::string credentials = username + ":" + sha256(password);
+    std::string credentials = username + ":" + password;
 
-    SSL_write(ssl, credentials.c_str(), (int)credentials.length());
-
-    /*std::string msg;
-
-    std::cout << "Message to send: ";
-    std::cin >> msg;
-
-    iResult = send(ConnectSocket, msg.c_str(), (int)msg.size(), 0);
-    if (iResult == SOCKET_ERROR) {
-        printf("send failed: %d\n", WSAGetLastError());
-        closesocket(ConnectSocket);
-        return;
-    }
-
-    printf("Bytes Sent: %ld\n", iResult);
-    */
-
-    SSL_shutdown(ssl);
+    iResult = send(ConnectSocket, credentials.c_str(), (int)credentials.length(), 0);
+    iResult = shutdown(ConnectSocket, SD_SEND);
 
     // Receive data until the server closes the connection
     while (true) {
 
-        iResult = SSL_read(ssl, recvbuf, recvbuflen);
+        iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
         if (iResult <= 0) break;
         std::string response(recvbuf, iResult);
         std::cout << response;
 
     }
 
-    SSL_shutdown(ssl);
-    SSL_free(ssl);
-    SSL_CTX_free(ctx);
     closesocket(ConnectSocket);
-    std::cout << "DONE!";
-
+    std::cout << "DONE!\n";
 }
 
 int main(int argc, char** argv)
@@ -278,7 +211,6 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    EVP_cleanup();
+    PrintMemoryUsage();
     WSACleanup();
-    return 0;
 }
