@@ -1,6 +1,8 @@
 #include "networking.h"
 #include "debuginfo.h"
 
+#include <unordered_set>
+
 #define DEFAULT_PORT "27015"
 #define MESSAGE_SIZE 1024
 
@@ -10,7 +12,6 @@ struct addrinfo *result = NULL, *ptr = NULL, hints;
 
 void run_server()
 {
-
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -117,8 +118,11 @@ void run_client()
 
     {
     std::string ipaddr;
-    std::cout << "Please input address: ";
-    std::cin >> ipaddr;
+
+    while (ipaddr.empty()) {
+        std::cout << "Please input address: ";
+        std::getline(std::cin, ipaddr);
+    }
 
     iResult = getaddrinfo(ipaddr.c_str(), DEFAULT_PORT, &hints, &result);
     }

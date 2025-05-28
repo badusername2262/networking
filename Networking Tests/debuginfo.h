@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iostream>
+#ifdef MY_DEBUG_ALLOC_TRACKING
 
 struct Memory {
     uint32_t Allocated = 0;
@@ -25,7 +25,13 @@ void operator delete(void* memory, size_t size)
     free(memory);
 }
 
-static void PrintMemoryUsage()
+void PrintMemoryUsage()
 {
     std::cout << "Memory Usage: " << mem.CurrentUsage() << " bytes\n";
 }
+
+#else
+
+inline void PrintMemoryUsage() {}
+
+#endif
