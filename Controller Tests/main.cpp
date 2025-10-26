@@ -77,7 +77,7 @@ public:
     InputClass(const InputClass&);
     ~InputClass();
 
-    bool Initialize(HINSTANCE, HWND, int, int);
+    bool Initialize(HINSTANCE, HWND);
     void Shutdown();
     bool Frame();
 
@@ -94,11 +94,56 @@ private:
     IDirectInputDevice8* m_gamepad;
 
     DIJOYSTATE2 m_controllerState;
-
 };
+
+InputClass::InputClass() 
+{
+    m_directInput = 0;
+    m_gamepad = 0;
+}
+
+InputClass::InputClass(const InputClass& other)
+{
+}
+
+bool InputClass::Initialize(HINSTANCE hinstance, HWND hwnd)
+{
+    HRESULT result;
+    
+    result = DirectInput8Create(hinstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&m_directInput, NULL);
+    if(FAILED(result))
+        return false;
+    
+    result = m_directInput->CreateDevice(GUID_Joystick, &m_gamepad, NULL);
+    if(FAILED(result))
+        return false;
+
+    result = m_gamepad->SetCooperativeLevel(hwnd, DISCL_EXCLUSIVE | DISCL_FOREGROUND);
+    if(FAILED(result))
+        return false;
+    
+    result = m_gamepad->Acquire();
+    if(FAILED(!result)) {
+        printf("Couldn't acquire gamepad");
+        return false;
+    }
+
+    return true;
+}
+
+void InputUpdate()
+{
+
+}
 
 int main()
 {
-    ControllerUpdate();
+    //ControllerUpdate();
+    InputClass* input;
+    input = new InputClass;
 
+    input->Initialize(GetModuleHandle(NULL), NULL);
+
+    free(input);
+    printf("hello");
 }
