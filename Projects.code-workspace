@@ -5,13 +5,9 @@
             "name": "Netowrking"
         },
         {
-            "path": "Controller Tests",
-            "name": "Controller"
-        },
-        {
             "path": "Game",
             "name": "Game"
-        },
+        }
     ],
     "settings": {
         "files.associations": {
